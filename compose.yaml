@@ -6,12 +6,12 @@ services:
     volumes:
       - ./nginx/default.conf:/tmp/default.conf
     environment: 
-      - DJANGO_SERVER_ADDR=mysite:8000
+      - DJANGO_SERVER_ADDR=backend:8000
       - STATIC_SERVER_ADDR=static-fs:8080
     ports:
       - "80:80"
     depends_on:
-      - mysite
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "curl --silent --fail localhost:80/health-check || exit 1"]
       interval: 10s
@@ -19,8 +19,8 @@ services:
       retries: 3
     command: /app/start.sh
 
-  mysite:
-    build: mysite
+  backend:
+    build: backend
     restart: always
     ports: 
       - '8000:8000'
@@ -36,9 +36,9 @@ services:
       - SECRET_KEY_FILE=/run/secrets/django-key
       - DEBUG=1
         # Uncomment this for production
-      - DJANGO_SETTINGS_MODULE=mysite.settings.production
+      - DJANGO_SETTINGS_MODULE=backend.settings.production
         # Comment this for development
-        #- DJANGO_SETTINGS_MODULE=mysite.settings.base
+        #- DJANGO_SETTINGS_MODULE=backend.settings.base
     depends_on:
       db:
         condition: service_healthy
@@ -49,7 +49,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 3
-    command: gunicorn -c gunicorn.config.py -b 0.0.0.0:8000 mysite.wsgi:application
+    command: gunicorn -c gunicorn.config.py -b 0.0.0.0:8000 --preload backend.wsgi:application
   
   db:
     image: postgres
@@ -88,4 +88,4 @@ secrets:
   db-password:
     file: secrets/db/password.txt
   django-key:
-    file: secrets/mysite/secret_key.txt
+    file: secrets/backend/secret_key.txt
