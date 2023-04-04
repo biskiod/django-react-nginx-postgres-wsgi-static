@@ -1,24 +1,5 @@
 services:
 
-  nginx-proxy:
-    build: nginx
-    restart: always
-    volumes:
-      - ./nginx/default.conf:/tmp/default.conf
-    environment: 
-      - DJANGO_SERVER_ADDR=backend:8000
-      - STATIC_SERVER_ADDR=static-fs:8080
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-    healthcheck:
-      test: ["CMD-SHELL", "curl --silent --fail localhost:80/health-check || exit 1"]
-      interval: 10s
-      timeout: 10s
-      retries: 3
-    command: /app/start.sh
-
   backend:
     build: backend
     restart: always
@@ -50,6 +31,30 @@ services:
       timeout: 10s
       retries: 3
     command: gunicorn -c gunicorn.config.py -b 0.0.0.0:8000 --preload backend.wsgi:application
+  
+  frontend:
+    build:
+      context: frontend
+      target: prod
+    restart: always
+    environment: 
+      - DJANGO_SERVER_ADDR=backend:8000
+      - STATIC_SERVER_ADDR=static-fs:8080
+    ports:
+      - 80:80
+    volumes:
+      - ./frontend/src:/code/src
+      - ./frontend/nginx/default.conf:/tmp/default.conf
+      - /code/node_modules
+    depends_on:
+      - backend
+      - static-fs
+    healthcheck:
+      test: ["CMD-SHELL", "curl --silent --fail localhost:80/health-check || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    command: /app/start.sh
   
   db:
     image: postgres
